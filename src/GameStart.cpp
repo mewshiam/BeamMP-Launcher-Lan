@@ -5,6 +5,7 @@
 */
 
 #include <cstring>
+#include "Utils.h"
 #if defined(_WIN32)
 #include <shlobj.h>
 #elif defined(__linux__)
@@ -19,7 +20,6 @@
 #include "Logger.h"
 #include "Options.h"
 #include "Startup.h"
-#include "Utils.h"
 #include <Security/Init.h>
 #include <filesystem>
 #include <thread>
