@@ -19,7 +19,7 @@
 #include <iostream>
 #include <mutex>
 #include <nlohmann/json.hpp>
-
+/*
 void WriteHttpDebug(const httplib::Client& client, const std::string& method, const std::string& target, const httplib::Result& result) try {
     const std::filesystem::path folder = ".https_debug";
     std::filesystem::create_directories(folder);
@@ -58,7 +58,7 @@ void WriteHttpDebug(const httplib::Client& client, const std::string& method, co
     of << js.dump();
 } catch (const std::exception& e) {
     error(e.what());
-}
+}*/
 
 static size_t CurlWriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
     std::string* Result = reinterpret_cast<std::string*>(userp);
