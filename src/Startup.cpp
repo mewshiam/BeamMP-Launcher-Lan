@@ -83,7 +83,7 @@ beammp_fs_string GetEN() {
 }
 
 std::string GetVer() {
-    return "2.7";
+    return "2.8";
 }
 std::string GetPatch() {
     return ".0";
