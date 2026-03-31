@@ -335,6 +335,15 @@ void CheckForUpdates(const std::string& CV) {
     std::string LatestVersion = HTTP::Get(
         "https://backend.beammp.com/version/launcher?branch=" + Branch + "&pk=" + PublicKey);
 
+    std::regex sha256_pattern(R"(^[a-fA-F0-9]{64}$)");
+    std::smatch match;
+
+    if (LatestHash.length() != 64 || !std::regex_match(LatestHash, match, sha256_pattern)) {
+        error("Invalid hash from backend, skipping update check.");
+        debug("Launcher hash in question: " + LatestHash);
+        return;
+    }
+
     transform(LatestHash.begin(), LatestHash.end(), LatestHash.begin(), ::tolower);
     beammp_fs_string BP(GetBP() / GetEN()), Back(GetBP() / beammp_wide("BeamMP-Launcher.back"));
 
@@ -510,6 +519,15 @@ void PreGame(const beammp_fs_string& GamePath) {
         LatestHash.erase(std::remove_if(LatestHash.begin(), LatestHash.end(),
                              [](auto const& c) -> bool { return !std::isalnum(c); }),
             LatestHash.end());
+
+        std::regex sha256_pattern(R"(^[a-fA-F0-9]{64}$)");
+        std::smatch match;
+
+        if (LatestHash.length() != 64 || !std::regex_match(LatestHash, match, sha256_pattern)) {
+            error("Invalid hash from backend, skipping mod update check.");
+            debug("Mod hash in question: " + LatestHash);
+            return;
+        }
 
         try {
             if (!fs::exists(GetGamePath() / beammp_wide("mods/multiplayer"))) {
