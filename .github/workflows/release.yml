@@ -1,0 +1,169 @@
+name: Build LAN Launcher Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Setup build environment
+        run: |
+          choco install cmake -y
+      
+      - name: Create LAN Configuration Header
+        run: |
+          New-Item -ItemType Directory -Force -Path "src/config" | Out-Null
+          @"
+          #pragma once
+          
+          namespace Config {
+              // LAN Configuration - Offline Mode
+              constexpr bool OFFLINE_MODE = true;
+              constexpr bool REQUIRE_AUTH = false;
+              constexpr bool REQUIRE_LICENSE = false;
+              constexpr bool AUTO_UPDATE = false;
+              
+              // Server discovery
+              constexpr bool AUTO_DISCOVER_SERVERS = true;
+              constexpr int LAN_BROADCAST_PORT = 3001;
+              constexpr int DEFAULT_SERVER_PORT = 3000;
+          }
+          "@ | Out-File -FilePath "src/config/lan_config.h"
+      
+      - name: Build
+        run: |
+          cmake -S . -B bin -G "Visual Studio 17 2022" -A x64
+          cmake --build bin --config Release
+      
+      - name: Package Release
+        run: |
+          New-Item -ItemType Directory -Force -Path "BeamMP-Launcher-LAN" | Out-Null
+          Copy-Item "bin/Release/*.exe" "BeamMP-Launcher-LAN/"
+          Copy-Item "bin/Release/*.dll" "BeamMP-Launcher-LAN/" -ErrorAction SilentlyContinue
+          
+          @"
+          BeamMP Launcher - LAN Edition
+          =============================
+          
+          This is a LAN-only version of the BeamMP launcher for offline multiplayer.
+          
+          Features:
+          - No account login required
+          - Local network server discovery
+          - No internet connection needed
+          - No automatic updates
+          
+          Setup:
+          1. Extract to your preferred location
+          2. Run BeamMP-Launcher.exe
+          3. Join or create a local server
+          
+          Server Connection:
+          - Automatically discovers servers on your LAN
+          - Manual IP entry: <your-server-ip>:3000
+          
+          Configuration:
+          Edit launcher settings in the configuration file if needed.
+          "@ | Out-File -FilePath "BeamMP-Launcher-LAN/README_LAN.txt"
+          
+          Compress-Archive -Path "BeamMP-Launcher-LAN" -DestinationPath "BeamMP-Launcher-LAN-Windows.zip"
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: BeamMP-Launcher-LAN-Windows.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+  build-linux:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Setup build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ git qt5-qmake qtbase5-dev
+      
+      - name: Create LAN Configuration Header
+        run: |
+          mkdir -p src/config
+          cat > src/config/lan_config.h << 'EOF'
+          #pragma once
+          
+          namespace Config {
+              // LAN Configuration - Offline Mode
+              constexpr bool OFFLINE_MODE = true;
+              constexpr bool REQUIRE_AUTH = false;
+              constexpr bool REQUIRE_LICENSE = false;
+              constexpr bool AUTO_UPDATE = false;
+              
+              // Server discovery
+              constexpr bool AUTO_DISCOVER_SERVERS = true;
+              constexpr int LAN_BROADCAST_PORT = 3001;
+              constexpr int DEFAULT_SERVER_PORT = 3000;
+          }
+          EOF
+      
+      - name: Build
+        run: |
+          cmake -S . -B bin -DCMAKE_BUILD_TYPE=Release
+          cmake --build bin --parallel --config Release
+      
+      - name: Package Release
+        run: |
+          mkdir -p BeamMP-Launcher-LAN
+          cp bin/BeamMP-Launcher BeamMP-Launcher-LAN/
+          
+          cat > BeamMP-Launcher-LAN/README_LAN.txt << 'EOF'
+          BeamMP Launcher - LAN Edition
+          =============================
+          
+          This is a LAN-only version of the BeamMP launcher for offline multiplayer.
+          
+          Features:
+          - No account login required
+          - Local network server discovery
+          - No internet connection needed
+          - No automatic updates
+          
+          Setup:
+          1. Extract to your preferred location
+          2. chmod +x BeamMP-Launcher
+          3. ./BeamMP-Launcher
+          4. Join or create a local server
+          
+          Server Connection:
+          - Automatically discovers servers on your LAN
+          - Manual IP entry: <your-server-ip>:3000
+          
+          Configuration:
+          Edit launcher settings in the configuration file if needed.
+          EOF
+          
+          zip -r BeamMP-Launcher-LAN-Linux.zip BeamMP-Launcher-LAN/
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: BeamMP-Launcher-LAN-Linux.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
